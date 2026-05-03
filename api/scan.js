@@ -174,22 +174,50 @@ function score(klines, btcAboveMA100) {
   trendScore = Math.min(100, Math.max(0, trendScore));
 
   // ── SIGNAL RULES ──────────────────────────────────────────────────────────
-  let signal;
-  if (trendScore >= 85 && structureType === 'RETEST' && volumeRatio > 1.5) {
+  const isGreenCandle = currentPrice > klines[n - 1].open;
+  const ma100DistPct = ((currentPrice - ma100) / ma100) * 100;
+
+  let signal = 'WATCH';
+
+  // 1. STRONG_BUY
+  if (currentPrice > ma100 && trendScore >= 85 && (structureType === 'RETEST' || structureType === 'BREAKOUT') && volumeRatio > 1.5) {
     signal = 'STRONG_BUY';
-    reasons.push('STRONG BUY: Retest + high volume + score ≥ 85');
-  } else if (trendScore >= 75 && currentPrice > ma100) {
+    reasons.push('STRONG BUY: Breakout/Retest + high volume + score ≥ 85');
+  } 
+  // 2. BUY
+  else if (currentPrice > ma100 && trendScore >= 75) {
     signal = 'BUY';
-  } else if (trendScore >= 55) {
+  } 
+  // 3. MOMENTUM_RISK (New Signal: Price below MA100 but momentum is strong)
+  else if (currentPrice < ma100 && ma100DistPct >= -3 && rsi >= 55 && volumeRatio >= 1.5 && isGreenCandle) {
+    signal = 'MOMENTUM_RISK';
+    reasons.push('MOMENTUM_RISK: Below MA100 but strong momentum/volume. Watch for breakout.');
+  }
+  // 4. WATCH
+  else if (trendScore >= 55) {
     signal = 'WATCH';
-  } else if (trendScore >= 40) {
+  } 
+  // 5. RISK
+  else if (trendScore >= 40) {
     signal = 'RISK';
-  } else {
-    signal = 'SELL';
+  } 
+  // 6. SELL (More rigid requirements)
+  else {
+    const confirmedWeakness = trendScore < 35;
+    const technicalSell = (currentPrice < ma100 * 0.97) && (rsi < 45) && (volumeRatio < 1.2) && !isGreenCandle;
+    
+    if (confirmedWeakness || technicalSell) {
+      signal = 'SELL';
+    } else {
+      signal = 'RISK';
+      reasons.push('SELL blocked: Momentum/Candle color still positive despite being below MA100');
+    }
   }
 
-  // Override: always SELL if price below MA100
-  if (currentPrice < ma100) signal = 'SELL';
+  // Final Safety Override: If price is way below MA100, it's a SELL regardless of score
+  if (currentPrice < ma100 * 0.95 && !isGreenCandle && trendScore < 45) {
+    signal = 'SELL';
+  }
 
   // Risk levels
   const stopLoss       = currentPrice - atr * 2;
@@ -281,6 +309,7 @@ module.exports = async function handler(req, res) {
       total:    data.length,
       strongBuy: data.filter(d => d.signal === 'STRONG_BUY').length,
       buy:      data.filter(d => d.signal === 'BUY').length,
+      momentumRisk: data.filter(d => d.signal === 'MOMENTUM_RISK').length,
       watch:    data.filter(d => d.signal === 'WATCH').length,
       risk:     data.filter(d => d.signal === 'RISK').length,
       sell:     data.filter(d => d.signal === 'SELL').length,

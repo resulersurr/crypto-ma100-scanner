@@ -205,6 +205,7 @@ export default function ScannerDashboard() {
     return {
       strongBuy: summary?.strongBuy || 0,
       buy: summary?.buy || 0,
+      momentumRisk: summary?.momentumRisk || 0,
       watch: summary?.watch || 0,
       risk: summary?.risk || 0,
       sell: summary?.sell || 0,
@@ -269,27 +270,25 @@ export default function ScannerDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {activeTab === 'daily' ? (
-          <>
+          <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
             <StatCard label="STRONG BUY" value={stats.strongBuy} color="text-green-400" icon={<TrendingUp />} />
             <StatCard label="BUY" value={stats.buy} color="text-success" icon={<TrendingUp />} />
+            <StatCard label="MOM. RISK" value={stats.momentumRisk} color="text-purple-400" icon={<Activity />} />
             <StatCard label="WATCH" value={stats.watch} color="text-primary" icon={<Activity />} />
             <StatCard label="RISK" value={stats.risk} color="text-amber-500" icon={<AlertCircle />} />
             <StatCard label="SELL" value={stats.sell} color="text-danger" icon={<TrendingDown />} />
             <StatCard label="Avg Score" value={stats.avgScore} color="text-slate-300" icon={<ArrowUpRight />} />
-          </>
+          </div>
         ) : (
-          <>
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             <div className="col-span-1 md:col-span-1" />
             <StatCard label="Total Signals" value={stats.total} color="text-slate-100" icon={<Activity />} />
             <StatCard label="UP Signals" value={stats.up} color="text-success" icon={<TrendingUp />} />
             <StatCard label="DOWN Signals" value={stats.down} color="text-danger" icon={<TrendingDown />} />
             <div className="col-span-1 md:col-span-2" />
-          </>
+          </div>
         )}
-      </div>
 
       {error && (
         <div className="bg-danger/10 border border-danger/20 rounded-xl p-4 flex items-start gap-3">
@@ -398,6 +397,7 @@ export default function ScannerDashboard() {
                     <option value="ALL">All Signals</option>
                      <option value="STRONG_BUY">STRONG BUY ⚡</option>
                     <option value="BUY">BUY</option>
+                    <option value="MOMENTUM_RISK">MOMENTUM RISK 🟣</option>
                     <option value="WATCH">WATCH</option>
                     <option value="RISK">RISK</option>
                     <option value="SELL">SELL</option>
@@ -549,6 +549,7 @@ function SignalBadge({ signal }) {
     STRONG_BUY: "bg-green-500/20 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.4)]",
     BUY: "bg-success/20 text-success border-success/30",
     UP: "bg-success/20 text-success border-success/30",
+    MOMENTUM_RISK: "bg-purple-500/20 text-purple-400 border-purple-500/30",
     WATCH: "bg-primary/20 text-primary border-primary/30",
     RISK: "bg-amber-500/20 text-amber-500 border-amber-500/30",
     SELL: "bg-danger/20 text-danger border-danger/30",
@@ -565,6 +566,7 @@ function getSignalColor(signal) {
   switch(signal) {
     case 'STRONG_BUY': return 'text-green-400 font-black drop-shadow-[0_0_5px_rgba(74,222,128,0.8)]';
     case 'BUY': return 'text-success';
+    case 'MOMENTUM_RISK': return 'text-purple-400 font-bold';
     case 'WATCH': return 'text-primary';
     case 'RISK': return 'text-amber-500';
     case 'SELL': return 'text-danger';
