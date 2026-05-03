@@ -18,17 +18,30 @@ async function fetchWithRetry(url, params = {}, retries = 1) {
   }
 }
 
-async function getTopPairs(limit = 50) {
+async function getAllUsdtPairs() {
   try {
     const res = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`);
     return res.data
-      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 5_000_000)
+      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 100_000)
       .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
-      .slice(0, limit)
       .map(t => t.symbol);
   } catch {
     return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOGEUSDT'];
   }
+}
+
+// Run async tasks with max N concurrent workers
+async function pool(items, concurrency, fn) {
+  const results = [];
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const i = index++;
+      results[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  return results;
 }
 
 async function fetchKlines(symbol, limit = 150) {
@@ -233,27 +246,25 @@ module.exports = async function handler(req, res) {
   const type = req.query.type || 'daily';
 
   try {
-    const pairs = await getTopPairs(50);
+    const pairs = await getAllUsdtPairs();
 
     // ── MA100 Breakout Tab ───────────────────────────────────────────────────
     if (type === 'ma100') {
-      const results = await Promise.all(pairs.map(p => processMa100(p)));
+      const results = await pool(pairs, 20, p => processMa100(p));
       return res.status(200).json({ data: results.filter(Boolean) });
     }
 
     // ── Daily Decision Tab ───────────────────────────────────────────────────
     const { btcAboveMA100 } = await getBtcContext();
 
-    const resultsRaw = await Promise.all(
-      pairs.map(async symbol => {
-        const klines = await fetchKlines(symbol, 150);
-        if (!klines || klines.length < 101) return null;
-        const result = score(klines, btcAboveMA100);
-        if (!result) return null;
-        result.symbol = symbol;
-        return result;
-      })
-    );
+    const resultsRaw = await pool(pairs, 20, async symbol => {
+      const klines = await fetchKlines(symbol, 150);
+      if (!klines || klines.length < 101) return null;
+      const result = score(klines, btcAboveMA100);
+      if (!result) return null;
+      result.symbol = symbol;
+      return result;
+    });
 
     const data = resultsRaw.filter(Boolean).sort((a, b) => b.trendScore - a.trendScore);
 
