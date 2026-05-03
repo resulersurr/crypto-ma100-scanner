@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { RSI, SMA, ATR } = require('technicalindicators');
 
-const BINANCE_API_URL = 'https://api.binance.com/api/v3';
+const BINANCE_API_URL = 'https://api4.binance.com/api/v3';
 
 // Fetch all tradable USDT MTM pairs
 async function getUsdtPairs() {

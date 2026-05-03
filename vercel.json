@@ -9,5 +9,11 @@
             "entrypoint": "backend",
             "routePrefix": "/_/backend"
         }
+    },
+    "functions": {
+        "backend/**/*.js": {
+            "region": "fra1",
+            "maxDuration": 60
+        }
     }
 }
