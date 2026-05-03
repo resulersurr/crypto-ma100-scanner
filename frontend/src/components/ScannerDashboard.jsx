@@ -8,7 +8,7 @@ import {
 import cx from 'classnames';
 import TradingViewChart from './TradingViewChart';
 
-const BASE_URL = import.meta.env.VITE_API_URL || '/_/backend/api/scan';
+const BASE_URL = '/api/scan';
 const AUTO_REFRESH_SECONDS = 60;
 
 export default function ScannerDashboard() {
