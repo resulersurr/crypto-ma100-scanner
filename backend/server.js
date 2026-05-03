@@ -199,8 +199,8 @@ async function handleScan(type, scanFn, res, force = false) {
       return returnDailyResponse(false);
     } catch (error) {
       state.isScanning = false;
-      console.error(`API Error (daily):`, error);
-      return res.status(500).json({ error: `Failed to scan daily` });
+      console.error(`API Error (${type}):`, error);
+      return res.status(500).json({ error: `Failed to scan ${type}`, details: error.message, stack: error.stack });
     }
   }
 }
