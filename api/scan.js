@@ -8,11 +8,19 @@ const HEADERS = {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-async function fetchWithRetry(url, params = {}, retries = 1) {
+async function fetchWithRetry(url, params = {}, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
-      return await axios.get(url, { params, headers: HEADERS, timeout: 6000 });
+      const res = await axios.get(url, { params, headers: HEADERS, timeout: 7000 });
+      return res;
     } catch (err) {
+      const status = err.response?.status;
+      if (status === 429) {
+        // Rate limited — wait and retry
+        const wait = (attempt + 1) * 1000;
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
       if (attempt === retries) throw err;
     }
   }
@@ -22,8 +30,9 @@ async function getAllUsdtPairs() {
   try {
     const res = await fetchWithRetry(`${BINANCE_API_URL}/ticker/24hr`);
     return res.data
-      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 100_000)
+      .filter(t => t.symbol.endsWith('USDT') && parseFloat(t.quoteVolume) > 1_000_000)
       .sort((a, b) => parseFloat(b.quoteVolume) - parseFloat(a.quoteVolume))
+      .slice(0, 200)  // Cap at 200 to stay within time limits
       .map(t => t.symbol);
   } catch {
     return ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOGEUSDT'];
@@ -248,16 +257,16 @@ module.exports = async function handler(req, res) {
   try {
     const pairs = await getAllUsdtPairs();
 
-    // ── MA100 Breakout Tab ───────────────────────────────────────────────────
+    // pool(pairs, 10) → 10 concurrent workers to stay under Binance rate limit
     if (type === 'ma100') {
-      const results = await pool(pairs, 20, p => processMa100(p));
+      const results = await pool(pairs, 10, p => processMa100(p));
       return res.status(200).json({ data: results.filter(Boolean) });
     }
 
     // ── Daily Decision Tab ───────────────────────────────────────────────────
     const { btcAboveMA100 } = await getBtcContext();
 
-    const resultsRaw = await pool(pairs, 20, async symbol => {
+    const resultsRaw = await pool(pairs, 10, async symbol => {
       const klines = await fetchKlines(symbol, 150);
       if (!klines || klines.length < 101) return null;
       const result = score(klines, btcAboveMA100);
