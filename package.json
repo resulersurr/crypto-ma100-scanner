@@ -1,8 +1,7 @@
 {
-  "name": "frontend",
+  "name": "crypto-ma100-scanner",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
