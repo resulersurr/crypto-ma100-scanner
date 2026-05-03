@@ -13,13 +13,54 @@ const AUTO_REFRESH_SECONDS = 60;
 
 export default function ScannerDashboard() {
   const [activeTab, setActiveTab] = useState('daily'); // 'daily' or 'ma100'
-  const [data, setData] = useState([]);
-  const [summary, setSummary] = useState(null);
-  const [changes, setChanges] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState(() => {
+    const saved = localStorage.getItem('crypto_scanner_data');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [summary, setSummary] = useState(() => {
+    const saved = localStorage.getItem('crypto_scanner_summary');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [changes, setChanges] = useState(() => {
+    const saved = localStorage.getItem('crypto_scanner_changes');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [loading, setLoading] = useState(data.length === 0);
   const [error, setError] = useState('');
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [lastChangeTimestamp, setLastChangeTimestamp] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(() => {
+    const saved = localStorage.getItem('crypto_scanner_last_updated');
+    return saved ? new Date(saved) : null;
+  });
+  const [lastChangeTimestamp, setLastChangeTimestamp] = useState(() => {
+    const saved = localStorage.getItem('crypto_scanner_last_change');
+    return saved ? new Date(saved) : null;
+  });
+
+  // Persist state to localStorage
+  useEffect(() => {
+    localStorage.setItem('crypto_scanner_data', JSON.stringify(data));
+    if (lastUpdated) localStorage.setItem('crypto_scanner_last_updated', lastUpdated.toISOString());
+  }, [data, lastUpdated]);
+
+  useEffect(() => {
+    localStorage.setItem('crypto_scanner_summary', JSON.stringify(summary));
+  }, [summary]);
+
+  useEffect(() => {
+    localStorage.setItem('crypto_scanner_changes', JSON.stringify(changes));
+  }, [changes]);
+
+  useEffect(() => {
+    if (lastChangeTimestamp) {
+      localStorage.setItem('crypto_scanner_last_change', lastChangeTimestamp.toISOString());
+    }
+  }, [lastChangeTimestamp]);
+
+  const clearChanges = () => {
+    setChanges([]);
+    localStorage.removeItem('crypto_scanner_changes');
+    localStorage.removeItem('crypto_scanner_last_change');
+  };
   const [countdown, setCountdown] = useState(AUTO_REFRESH_SECONDS);
   const [search, setSearch] = useState('');
   const [refreshing, setRefreshing] = useState(false);
@@ -266,9 +307,19 @@ export default function ScannerDashboard() {
                 <BellRing className="w-5 h-5 text-primary animate-pulse" />
                 Live Signal Changes
               </h2>
-              {lastChangeTimestamp && (
-                <span className="text-xs text-slate-500 mt-1">Last change detected: {lastChangeTimestamp.toLocaleTimeString()}</span>
-              )}
+              <div className="flex items-center gap-4">
+                {lastChangeTimestamp && (
+                  <span className="text-xs text-slate-500">Last change: {lastChangeTimestamp.toLocaleTimeString()}</span>
+                )}
+                {changes.length > 0 && (
+                  <button 
+                    onClick={clearChanges}
+                    className="text-[10px] bg-slate-700 hover:bg-slate-600 text-slate-300 px-2 py-0.5 rounded transition-colors"
+                  >
+                    Clear Logs
+                  </button>
+                )}
+              </div>
             </div>
             
             <div className="flex flex-wrap items-center gap-2">
