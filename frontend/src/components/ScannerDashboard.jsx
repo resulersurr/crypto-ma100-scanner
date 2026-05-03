@@ -31,22 +31,20 @@ export default function ScannerDashboard() {
   
   // Changes Filter
   const [changeFilter, setChangeFilter] = useState('ALL'); // ALL, NEW_BUY, LOST_BUY, SIGNAL_CHANGED, SCORE_DOWN, SCORE_UP
-
+  
   const fetchSignals = useCallback(async (force = false) => {
     try {
       if (!data.length || force) setRefreshing(true);
       setError('');
       
-      const endpoint = `${BASE_URL}/${activeTab}${force ? '/refresh' : ''}`;
-      const res = await axios[force ? 'post' : 'get'](endpoint);
+      const endpoint = `${BASE_URL}?type=${activeTab}${force ? '&refresh=true' : ''}`;
+      const res = await axios.get(endpoint);
       
       if (activeTab === 'daily') {
         setData(res.data.data || []);
         setSummary(res.data.summary || null);
+        // Note: changes tracking is simplified in serverless
         setChanges(res.data.changes || []);
-        if (res.data.lastChangeTimestamp) {
-          setLastChangeTimestamp(new Date(res.data.lastChangeTimestamp));
-        }
       } else {
         setData(res.data.data || []);
       }
