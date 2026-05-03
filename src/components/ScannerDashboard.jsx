@@ -39,19 +39,70 @@ export default function ScannerDashboard() {
       
       const endpoint = `${BASE_URL}?type=${activeTab}${force ? '&refresh=true' : ''}`;
       const res = await axios.get(endpoint);
+      const newData = res.data.data || [];
+      
+      if (activeTab === 'daily' && data.length > 0) {
+        const newChanges = [];
+        const oldMap = new Map(data.map(item => [item.symbol, item]));
+
+        newData.forEach(newItem => {
+          const oldItem = oldMap.get(newItem.symbol);
+          if (!oldItem) return;
+
+          const isOldBuy = oldItem.signal === 'BUY' || oldItem.signal === 'STRONG_BUY';
+          const isNewBuy = newItem.signal === 'BUY' || newItem.signal === 'STRONG_BUY';
+
+          let changeType = null;
+          let message = '';
+
+          if (!isOldBuy && isNewBuy) {
+            changeType = 'NEW_BUY';
+            message = `🚀 Signal upgraded to ${newItem.signal}`;
+          } else if (isOldBuy && !isNewBuy) {
+            changeType = 'LOST_BUY';
+            message = `⚠️ Signal downgraded to ${newItem.signal}`;
+          } else if (oldItem.signal !== newItem.signal) {
+            changeType = 'SIGNAL_CHANGED';
+            message = `Signal changed from ${oldItem.signal} to ${newItem.signal}`;
+          } else if (newItem.trendScore > oldItem.trendScore) {
+            changeType = 'SCORE_UP';
+            message = `Score increased: ${oldItem.trendScore} -> ${newItem.trendScore}`;
+          } else if (newItem.trendScore < oldItem.trendScore) {
+            changeType = 'SCORE_DOWN';
+            message = `Score decreased: ${oldItem.trendScore} -> ${newItem.trendScore}`;
+          }
+
+          if (changeType) {
+            newChanges.push({
+              symbol: newItem.symbol,
+              changeType,
+              previousSignal: oldItem.signal,
+              currentSignal: newItem.signal,
+              previousScore: oldItem.trendScore,
+              currentScore: newItem.trendScore,
+              previousPrice: oldItem.price,
+              currentPrice: newItem.price,
+              scoreDiff: newItem.trendScore - oldItem.trendScore,
+              message,
+              timestamp: new Date()
+            });
+          }
+        });
+
+        if (newChanges.length > 0) {
+          setChanges(prev => [...newChanges, ...prev].slice(0, 50));
+          setLastChangeTimestamp(new Date());
+        }
+      }
       
       if (activeTab === 'daily') {
-        setData(res.data.data || []);
+        setData(newData);
         setSummary(res.data.summary || null);
-        // Note: changes tracking is simplified in serverless
-        setChanges(res.data.changes || []);
       } else {
-        setData(res.data.data || []);
+        setData(newData);
       }
 
-      if (res.data.timestamp) {
-        setLastUpdated(new Date(res.data.timestamp));
-      }
+      setLastUpdated(new Date());
       setCountdown(AUTO_REFRESH_SECONDS);
     } catch (err) {
       if (err.response?.status === 409) {
@@ -63,7 +114,7 @@ export default function ScannerDashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [activeTab, data.length]);
+  }, [activeTab, data]);
 
   useEffect(() => {
     fetchSignals();
