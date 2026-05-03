@@ -111,16 +111,12 @@ export default function ScannerDashboard() {
       };
     }
     return {
-      buy: summary?.buyCount || 0,
-      buyPrev: summary?.previousBuyCount || 0,
-      buyDiff: summary?.buyCountDiff || 0,
-      watch: summary?.watchCount || 0,
-      risk: summary?.riskCount || 0,
-      sell: summary?.sellCount || 0,
-      newBuy: summary?.newBuyCount || 0,
-      lostBuy: summary?.lostBuyCount || 0,
-      signalChanged: summary?.signalChangeCount || 0,
-      avgScore: data.length ? (data.reduce((acc, d) => acc + d.trendScore, 0) / data.length).toFixed(1) : 0
+      strongBuy: summary?.strongBuy || 0,
+      buy: summary?.buy || 0,
+      watch: summary?.watch || 0,
+      risk: summary?.risk || 0,
+      sell: summary?.sell || 0,
+      avgScore: summary?.avgScore || (data.length ? (data.reduce((acc, d) => acc + d.trendScore, 0) / data.length).toFixed(1) : 0)
     };
   }, [data, activeTab, summary]);
 
@@ -185,12 +181,12 @@ export default function ScannerDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
         {activeTab === 'daily' ? (
           <>
-            <StatCard label="BUY (Now)" value={stats.buy} color="text-success" subText={stats.buyDiff !== 0 ? `${stats.buyDiff > 0 ? '+' : ''}${stats.buyDiff} from prev` : 'No change'} icon={<TrendingUp />} />
+            <StatCard label="STRONG BUY" value={stats.strongBuy} color="text-green-400" icon={<TrendingUp />} />
+            <StatCard label="BUY" value={stats.buy} color="text-success" icon={<TrendingUp />} />
             <StatCard label="WATCH" value={stats.watch} color="text-primary" icon={<Activity />} />
             <StatCard label="RISK" value={stats.risk} color="text-amber-500" icon={<AlertCircle />} />
             <StatCard label="SELL" value={stats.sell} color="text-danger" icon={<TrendingDown />} />
-            <StatCard label="New BUY" value={stats.newBuy} color="text-success" icon={<ArrowUpRight />} />
-            <StatCard label="Lost BUY" value={stats.lostBuy} color="text-danger" icon={<TrendingDown />} />
+            <StatCard label="Avg Score" value={stats.avgScore} color="text-slate-300" icon={<ArrowUpRight />} />
           </>
         ) : (
           <>
@@ -298,6 +294,7 @@ export default function ScannerDashboard() {
                     className="bg-slate-900 border border-slate-700 text-xs rounded-lg px-3 py-2 text-slate-300 focus:outline-none"
                   >
                     <option value="ALL">All Signals</option>
+                     <option value="STRONG_BUY">STRONG BUY ⚡</option>
                     <option value="BUY">BUY</option>
                     <option value="WATCH">WATCH</option>
                     <option value="RISK">RISK</option>
